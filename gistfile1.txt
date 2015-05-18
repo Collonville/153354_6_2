@@ -1,0 +1,127 @@
+/*
+ * 学籍番号・氏名：153354 舘山北斗
+ * 授業回・課題番号：第6回・第2課題
+ * 工夫した点：BM法を利用して高速化を行った
+ */
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<time.h>
+
+#define MAX_CHAR_NUM 256 //読み込む最大文字数
+#define MAX_TARGET 3 //ターゲットとする文字列の個数
+
+#define max(a, b) (a > b ? a : b) //a,bで大きい方の値を返す
+
+//char配列の要素数を取得する
+int getCharSize(const char *data){
+  int size = 0;
+  
+  while(data[size] != '\0'){
+    size++;
+  }
+
+  return size;
+}
+
+void powerCounter(char *text, char *pattern){
+  int n, len, filesize, i;
+  clock_t t1, t2;
+
+  n = 0;
+  len = strlen(pattern);
+  filesize = strlen(text);
+
+  t1 = clock();
+  for(i = 0; i < filesize; i++){
+    if(strncmp(text + i, pattern, len) == 0){
+      n++;
+    }
+  }
+  t2 = clock();
+  
+  puts("Brute Force");
+  printf("%s found %d times!\n", pattern, n);
+  printf("Used CPU time:%lf\n", (double)(t2 - t1) / CLOCKS_PER_SEC);
+}
+
+void targetCounterBM(char *data, char *pattern){
+  int paragraphSize = strlen(data);
+  int targetSize = strlen(pattern); //ターゲット文字列の要素数
+  int n = 0; //発見したターゲットの総数
+
+  int skip[MAX_CHAR_NUM] = {targetSize};
+  int i,j;
+  clock_t start, end;
+
+  start = clock();
+  //不一致となった場合にずらす量を確保する
+  for(i = 0; i < targetSize - 1; i++)
+    skip[pattern[i]] = targetSize - i - 1;
+
+  //テキストを後ろから探索
+  i = targetSize - 1;
+  while(i < paragraphSize){
+    j = targetSize - 1;
+    //後ろから探索した結果一致した場合
+    while((int)data[i] == (int)pattern[j]){
+      //文字列が全て一致したら
+      if(j == 0){
+	       n++;
+      }
+      i--;
+      j--;
+    }
+    //ずらす
+    i += max(skip[data[i]], targetSize - j);
+  }
+  end = clock();
+  
+  puts("BM");
+  printf("%s found %d times!\n", pattern, n);
+  printf("Used CPU time:%lf\n", (end - start) / (double)CLOCKS_PER_SEC);
+}
+
+int main(int argc, char *argv[]){
+  FILE *file; //ファイルポインタ
+  char *stringData = NULL; //文字列配列
+  char buf[256];
+
+  //指定したファイルをOpenする
+  file = fopen(argv[1], "r");
+  if(file == NULL){
+    puts("Can`t open file");
+    fclose(file);
+    exit(1);
+  }
+
+  stringData = (char *)malloc(sizeof(char));
+  if(stringData == NULL){
+    puts("Can`t alloc");
+    fclose(file);
+    exit(1);
+  }
+  
+  stringData[0] = '\0';
+  while(fgets(buf, sizeof(buf), file) != NULL){
+    stringData = (char *)realloc(stringData, strlen(stringData) + strlen(buf) + 1);
+    if(stringData == NULL){
+      printf("Can't reallocate memory. 'str' is NULL.\n");
+      fclose(file);
+      exit(1);
+    }
+    strncat(stringData, buf, strlen(buf) + 1);
+  }
+  fclose(file);
+
+  powerCounter(stringData, argv[2]);
+  targetCounterBM(stringData, argv[2]);
+  
+  return 0;
+}
+
+/*
+実行結果:
+
+
+ */
